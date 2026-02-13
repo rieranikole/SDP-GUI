@@ -7,6 +7,7 @@
   --muted: #5f738a;
   --primary: #0b6aa8;
   --primary-strong: #075686;
+  --accent: #13795b;
   --ring: rgba(11, 106, 168, 0.35);
   --border: #d5e2ee;
   --shadow: 0 12px 36px rgba(18, 38, 58, 0.14);
@@ -164,7 +165,8 @@ textarea:focus,
   box-shadow: 0 0 0 4px var(--ring);
 }
 
-.model-grid {
+.model-grid,
+.matlab-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
@@ -204,9 +206,12 @@ textarea:focus,
 
 .actions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   margin-top: 12px;
+}
+
+.actions-three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .btn {
@@ -242,6 +247,11 @@ textarea:focus,
   color: #11324c;
 }
 
+.btn.accent {
+  background: linear-gradient(135deg, var(--accent), #19a073);
+  color: #ffffff;
+}
+
 @keyframes rise-in {
   from {
     opacity: 0;
@@ -272,11 +282,9 @@ textarea:focus,
     grid-template-columns: 1fr;
   }
 
-  .model-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .actions {
+  .model-grid,
+  .matlab-grid,
+  .actions-three {
     grid-template-columns: 1fr;
   }
 }

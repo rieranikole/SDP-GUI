@@ -4,16 +4,36 @@ const prompt = document.getElementById("prompt");
 const charCount = document.getElementById("charCount");
 const convertBtn = document.getElementById("convertBtn");
 const askBtn = document.getElementById("askBtn");
+const workflowBtn = document.getElementById("workflowBtn");
+
 const readable = document.getElementById("readable");
+const generatedScript = document.getElementById("generatedScript");
 const response = document.getElementById("response");
 const requestStatus = document.getElementById("requestStatus");
+
 const modelName = document.getElementById("modelName");
 const baseUrl = document.getElementById("baseUrl");
 const apiKey = document.getElementById("apiKey");
+const matlabCmd = document.getElementById("matlabCmd");
+const timeoutSec = document.getElementById("timeoutSec");
 
 function setStatus(message, isError = false) {
   requestStatus.textContent = message;
   requestStatus.classList.toggle("error", isError);
+}
+
+function setBusy(isBusy) {
+  convertBtn.disabled = isBusy;
+  askBtn.disabled = isBusy;
+  workflowBtn.disabled = isBusy;
+}
+
+function currentModelConfig() {
+  return {
+    model: modelName.value.trim(),
+    base_url: baseUrl.value.trim(),
+    api_key: apiKey.value.trim(),
+  };
 }
 
 function toBase64(file) {
@@ -43,6 +63,27 @@ async function postJson(url, payload) {
   return data;
 }
 
+async function convertIfNeeded(force = false) {
+  const file = fileInput.files?.[0];
+  if (!file) {
+    throw new Error("Select a .slx file first.");
+  }
+  if (!file.name.toLowerCase().endsWith(".slx")) {
+    throw new Error("Only .slx files are supported.");
+  }
+  if (!force && readable.value.trim()) {
+    return;
+  }
+
+  const content_b64 = await toBase64(file);
+  const data = await postJson("/api/convert", {
+    filename: file.name,
+    content_b64,
+  });
+
+  readable.value = data.readable_text || "";
+}
+
 fileInput.addEventListener("change", () => {
   const file = fileInput.files?.[0];
   fileName.textContent = file ? file.name : "No .slx file selected";
@@ -53,63 +94,35 @@ prompt.addEventListener("input", () => {
 });
 
 convertBtn.addEventListener("click", async () => {
-  const file = fileInput.files?.[0];
-  if (!file) {
-    setStatus("Select a .slx file first.", true);
-    return;
-  }
-
-  if (!file.name.toLowerCase().endsWith(".slx")) {
-    setStatus("Only .slx files are supported.", true);
-    return;
-  }
-
   try {
-    convertBtn.disabled = true;
+    setBusy(true);
     setStatus("Converting .slx file...");
-
-    const content_b64 = await toBase64(file);
-    const data = await postJson("/api/convert", {
-      filename: file.name,
-      content_b64,
-    });
-
-    readable.value = data.readable_text || "";
-    const stats = data.stats || {};
-    setStatus(`Converted successfully: ${stats.blocks ?? 0} blocks, ${stats.lines ?? 0} lines.`);
+    await convertIfNeeded(true);
+    setStatus("Conversion completed.");
   } catch (err) {
     setStatus(err.message || "Conversion failed.", true);
   } finally {
-    convertBtn.disabled = false;
+    setBusy(false);
   }
 });
 
 askBtn.addEventListener("click", async () => {
   const promptText = prompt.value.trim();
-  const readableText = readable.value.trim();
-
   if (!promptText) {
     setStatus("Enter a prompt before asking the model.", true);
     return;
   }
 
-  if (!readableText) {
-    setStatus("Convert the .slx file first (or provide readable text).", true);
-    return;
-  }
-
   try {
-    askBtn.disabled = true;
-    setStatus("Querying model...");
+    setBusy(true);
+    setStatus("Preparing readable model data...");
+    await convertIfNeeded(false);
 
+    setStatus("Querying model...");
     const data = await postJson("/api/ask", {
       prompt: promptText,
-      readable_text: readableText,
-      model_config: {
-        model: modelName.value.trim(),
-        base_url: baseUrl.value.trim(),
-        api_key: apiKey.value.trim(),
-      },
+      readable_text: readable.value.trim(),
+      model_config: currentModelConfig(),
     });
 
     response.value = data.answer || "";
@@ -117,6 +130,40 @@ askBtn.addEventListener("click", async () => {
   } catch (err) {
     setStatus(err.message || "Model request failed.", true);
   } finally {
-    askBtn.disabled = false;
+    setBusy(false);
+  }
+});
+
+workflowBtn.addEventListener("click", async () => {
+  const promptText = prompt.value.trim();
+  if (!promptText) {
+    setStatus("Enter a prompt before running MATLAB workflow.", true);
+    return;
+  }
+
+  try {
+    setBusy(true);
+    setStatus("Preparing readable model data...");
+    await convertIfNeeded(false);
+
+    setStatus("Generating MATLAB script and executing in batch mode...");
+    const data = await postJson("/api/workflow", {
+      prompt: promptText,
+      readable_text: readable.value.trim(),
+      model_config: currentModelConfig(),
+      matlab_cmd: matlabCmd.value.trim() || "matlab",
+      timeout_sec: Number(timeoutSec.value || 300),
+    });
+
+    generatedScript.value = data.generated_script || "";
+    response.value = data.report || "";
+
+    const runInfo = data.matlab || {};
+    const state = runInfo.status === "success" ? "completed" : "failed";
+    setStatus(`Workflow ${state}. Run ID: ${runInfo.run_id || "n/a"}`);
+  } catch (err) {
+    setStatus(err.message || "Workflow failed.", true);
+  } finally {
+    setBusy(false);
   }
 });
