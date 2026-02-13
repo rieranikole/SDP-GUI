@@ -34,37 +34,64 @@
     <section class="workspace">
       <article class="panel input-panel">
         <h2>Input Source</h2>
-        <p class="muted">Choose an .slx model file and provide your prompt.</p>
+        <p class="muted">Choose an .slx model, then run convert, model Q&A, or full MATLAB workflow.</p>
 
-        <label class="field-label" for="fileInput">Simulink file</label>
+        <label class="field-label" for="fileInput">Simulink file (.slx)</label>
         <input id="fileInput" type="file" accept=".slx" />
         <p id="fileName" class="status-chip">No .slx file selected</p>
+
+        <div class="model-grid">
+          <div>
+            <label class="field-label" for="modelName">Model name</label>
+            <input id="modelName" class="text-input" type="text" placeholder="gpt-4o-mini" />
+          </div>
+          <div>
+            <label class="field-label" for="baseUrl">Model base URL</label>
+            <input id="baseUrl" class="text-input" type="text" placeholder="https://api.openai.com/v1" />
+          </div>
+        </div>
+
+        <label class="field-label" for="apiKey">Model API key</label>
+        <input id="apiKey" class="text-input" type="password" placeholder="Paste API key (optional if env var set)" />
+
+        <div class="matlab-grid">
+          <div>
+            <label class="field-label" for="matlabCmd">MATLAB command/path</label>
+            <input id="matlabCmd" class="text-input" type="text" placeholder="matlab" />
+          </div>
+          <div>
+            <label class="field-label" for="timeoutSec">MATLAB timeout (sec)</label>
+            <input id="timeoutSec" class="text-input" type="number" min="30" step="10" value="300" />
+          </div>
+        </div>
 
         <div class="prompt-header">
           <label class="field-label" for="prompt">Question / Prompt</label>
           <span id="charCount" class="muted">0 chars</span>
         </div>
-        <textarea id="prompt" rows="10" placeholder="Example: Summarize the control flow and list safety-critical subsystems."></textarea>
+        <textarea id="prompt" rows="8" placeholder="Example: Build a closed-loop speed control simulation, tune parameters, run optimization, and summarize results."></textarea>
 
-        <div class="actions">
-          <button id="convertBtn" class="btn primary">Convert .slx to Readable Data</button>
-          <button id="askBtn" class="btn secondary">Ask AI</button>
+        <p id="requestStatus" class="request-status" aria-live="polite"></p>
+
+        <div class="actions actions-three">
+          <button id="convertBtn" class="btn primary">Convert .slx</button>
+          <button id="askBtn" class="btn secondary">Ask Model</button>
+          <button id="workflowBtn" class="btn accent">Run MATLAB Workflow</button>
         </div>
       </article>
 
       <article class="panel output-panel">
         <h2>Pipeline Output</h2>
-        <p class="muted">Visual placeholders for extraction and model integration.</p>
+        <p class="muted">Conversion output, generated MATLAB script, and report are shown here.</p>
 
         <label class="field-label" for="readable">Readable data preview</label>
-        <textarea id="readable" rows="10">[Placeholder] Converted architecture text from .slx will appear here...
+        <textarea id="readable" rows="9" placeholder="Converted .slx output will appear here..."></textarea>
 
-- Subsystem: ...
-- Blocks: ...
-- Signals: ...</textarea>
+        <label class="field-label" for="generatedScript">Generated MATLAB script</label>
+        <textarea id="generatedScript" rows="8" placeholder="Generated MATLAB script will appear here..."></textarea>
 
-        <label class="field-label" for="response">AI response</label>
-        <textarea id="response" rows="10">[Placeholder] Natural-language answer from the AI model will appear here.</textarea>
+        <label class="field-label" for="response">Report / model response</label>
+        <textarea id="response" rows="10" placeholder="Workflow report or model answer will appear here..."></textarea>
       </article>
     </section>
   </main>
