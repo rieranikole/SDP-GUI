@@ -140,7 +140,62 @@ def _model_defaults(model_config: dict[str, str] | None = None) -> tuple[str, st
     return api_key, base_url, model_name
 
 
+def _provider(model_config: dict[str, str] | None = None) -> str:
+    model_config = model_config or {}
+    provider = (model_config.get("provider") or os.environ.get("MODEL_PROVIDER") or "openai").strip().lower()
+    if provider in {"openai", "openai-compatible", "openai_compatible"}:
+        return "openai"
+    if provider == "ollama":
+        return "ollama"
+    raise RuntimeError(f"Unsupported model provider: {provider}")
+
+
+def _ollama_defaults(model_config: dict[str, str] | None = None) -> tuple[str, str]:
+    model_config = model_config or {}
+    base_url = (model_config.get("base_url") or os.environ.get("OLLAMA_BASE_URL") or "http://localhost:11434").rstrip("/")
+    model_name = model_config.get("model") or os.environ.get("OLLAMA_MODEL") or "mistral:7b-instruct"
+    return base_url, model_name
+
+
+def _ollama_chat(system_msg: str, user_msg: str, model_config: dict[str, str] | None = None, temperature: float = 0.2) -> str:
+    base_url, model_name = _ollama_defaults(model_config)
+    payload = {
+        "model": model_name,
+        "messages": [
+            {"role": "system", "content": system_msg},
+            {"role": "user", "content": user_msg},
+        ],
+        "stream": False,
+        "options": {"temperature": temperature},
+    }
+
+    req = urllib.request.Request(
+        url=f"{base_url}/api/chat",
+        data=json.dumps(payload).encode("utf-8"),
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=300) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"Ollama API error ({exc.code}): {body}") from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError(f"Ollama API connection error: {exc}") from exc
+
+    message = data.get("message", {})
+    content = message.get("content", "").strip()
+    if not content:
+        raise RuntimeError("Ollama returned an empty response.")
+    return content
+
+
 def _chat_completion(system_msg: str, user_msg: str, model_config: dict[str, str] | None = None, temperature: float = 0.2) -> str:
+    if _provider(model_config) == "ollama":
+        return _ollama_chat(system_msg, user_msg, model_config=model_config, temperature=temperature)
+
     api_key, base_url, model_name = _model_defaults(model_config)
 
     payload = {

@@ -11,6 +11,7 @@ const generatedScript = document.getElementById("generatedScript");
 const response = document.getElementById("response");
 const requestStatus = document.getElementById("requestStatus");
 
+const provider = document.getElementById("provider");
 const modelName = document.getElementById("modelName");
 const baseUrl = document.getElementById("baseUrl");
 const apiKey = document.getElementById("apiKey");
@@ -30,10 +31,35 @@ function setBusy(isBusy) {
 
 function currentModelConfig() {
   return {
+    provider: provider.value,
     model: modelName.value.trim(),
     base_url: baseUrl.value.trim(),
     api_key: apiKey.value.trim(),
   };
+}
+
+function applyProviderDefaults() {
+  if (provider.value === "ollama") {
+    if (!modelName.value.trim() || modelName.value.trim() === "gpt-4o-mini") {
+      modelName.value = "mistral:7b-instruct";
+    }
+    if (!baseUrl.value.trim() || baseUrl.value.trim() === "https://api.openai.com/v1") {
+      baseUrl.value = "http://localhost:11434";
+    }
+    apiKey.value = "";
+    apiKey.disabled = true;
+    apiKey.placeholder = "Not required for local Ollama";
+    return;
+  }
+
+  if (!modelName.value.trim() || modelName.value.trim() === "mistral:7b-instruct") {
+    modelName.value = "gpt-4o-mini";
+  }
+  if (!baseUrl.value.trim() || baseUrl.value.trim() === "http://localhost:11434") {
+    baseUrl.value = "https://api.openai.com/v1";
+  }
+  apiKey.disabled = false;
+  apiKey.placeholder = "Paste API key";
 }
 
 function toBase64(file) {
@@ -92,6 +118,9 @@ fileInput.addEventListener("change", () => {
 prompt.addEventListener("input", () => {
   charCount.textContent = `${prompt.value.length} chars`;
 });
+
+provider.addEventListener("change", applyProviderDefaults);
+applyProviderDefaults();
 
 convertBtn.addEventListener("click", async () => {
   try {

@@ -40,14 +40,20 @@
         <input id="fileInput" type="file" accept=".slx" />
         <p id="fileName" class="status-chip">No .slx file selected</p>
 
+        <label class="field-label" for="provider">Model provider</label>
+        <select id="provider" class="text-input">
+          <option value="ollama" selected>Ollama (Local)</option>
+          <option value="openai">OpenAI-compatible</option>
+        </select>
+
         <div class="model-grid">
           <div>
             <label class="field-label" for="modelName">Model name</label>
-            <input id="modelName" class="text-input" type="text" placeholder="gpt-4o-mini" />
+            <input id="modelName" class="text-input" type="text" placeholder="mistral:7b-instruct" />
           </div>
           <div>
             <label class="field-label" for="baseUrl">Model base URL</label>
-            <input id="baseUrl" class="text-input" type="text" placeholder="https://api.openai.com/v1" />
+            <input id="baseUrl" class="text-input" type="text" placeholder="http://localhost:11434" />
           </div>
         </div>
 
